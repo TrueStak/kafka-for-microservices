@@ -30,6 +30,7 @@ services:
       - kafka
     environment:
       - DJANGO_SETTINGS_MODULE=order_service.settings
+    command: python manage.py runserver 0.0.0.0:8000
 
   product_service:
     build: ./product_service
@@ -40,15 +41,45 @@ services:
       - kafka
     environment:
       - DJANGO_SETTINGS_MODULE=product_service.settings
+    command: python manage.py runserver 0.0.0.0:8000
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
     ports:
       - "8081:8080"
+      - "9999:9999"
     depends_on:
       - kafka
     environment:
       - KAFKA_CLUSTERS_0_NAME=local
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
       - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
+      - KAFKA_JMX_PORT=9999
+      - KAFKA_JMX_HOSTNAME=kafka
+
+  prometheus:
+    image: prom/prometheus
+    restart: 'no'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+    network_mode: host
+
+  grafana:
+    image: grafana/grafana
+    environment:
+      GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-simple-json-datasource"
+    restart: 'no'
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - 3000:3000
+    depends_on:
+      - prometheus
+    network_mode: host
+
+volumes:
+    prometheus_data:
+    grafana_data: 
